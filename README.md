@@ -1,5 +1,10 @@
 # REAVER
-Vessel Segmentation Program
+Rapid Editable Analysis of Vessel Elements Routine.
+
+## External Links
+1. Preprint of manuscript: .
+2. Download vessel network benchmark image dataset used in manuscript: https://doi.org/10.5281/zenodo.3340165.
+3. Additional output images that were used in some of the figures: https://drive.google.com/file/d/1g-HQW14lRk6NmEGbweIxZYZ13WiOQSYR/view?usp=sharing.
 
 ## Dependencies:
 * Tested on MATLAB 2018b, requires image processing toolbox.
