@@ -28,12 +28,6 @@ if true
 		mkdir('temp')
 	end
 	
-	
-% current_directory = pwd ;
-% [~,upper_path] = strsplit(current_directory,'.*REAVER\\','DelimiterType','RegularExpression') ;
-% addpath(genpath([upper_path{1},'ToolBox\findjobj']))
-	
-	
 	% Checking through the default values
 	for i = 1:length(default_value_names)
 		temp_filename = ['temp\default_',default_value_names{i},'.mat'] ;
@@ -622,7 +616,7 @@ if true
 	%---- End: Create Border Image
 	
 	%---- Start: Image Segmentation First Stage Constants
-		handles.constants.selectedColors = [true,true,true] ;
+		handles.constants.selectedColors = [true,false,false] ;
 		handles.grayImage				 = 0 ;
 		
 		handles.constants.averagingFilterSize  = 128 ; % Size of averaging neighborhood
@@ -719,7 +713,6 @@ function loadDirectory_Callback(hObject,~)
 	
 	handles.imageDirectory.validFiles = {directoryContentsImages.name}' ;
     
-%     rng( max(size(handles.imageDirectory.validFiles)) )
 	% Using the directory path as the random seed for reproducibility 
     rng( sum(double(selectedDirectory(:))) )
     randomOrder = randperm( max(size(handles.imageDirectory.validFiles)) ) ;
@@ -760,7 +753,7 @@ function loadDirectory_Callback(hObject,~)
 	random_filenames = strsplit(random_filenames,',')' ;
 	random_filenames(end) = [] ;
     
-	tableData	   = cell(length(trimmedValidImageFiles),3) ;
+	tableData = cell(length(trimmedValidImageFiles),3) ;
 	
 	if blind
 		tableData(:,1) = random_filenames ;
@@ -953,7 +946,6 @@ function processAllImages_Callback(hObject,~)
 	%---- Start: Save Relevant Data		
 		save( [filepaths{i}(1:(end-4)) , '.mat' ] , '-struct' , 'saveVariables' ) ;
 		
-% 		handles.imageDirectoryTable.Data{ noData(i) , 2 } = true ;
 		handles.imageDirectoryTable.Data{ i , 2 } = true ;
 	%---- End: Save Relevant Data
 	end
@@ -1236,6 +1228,7 @@ function imageDirectoryTableSelection_Callback(hObject,eventdata)
 					handles.basePic.data = cat(3, handles.basePic.data, im2uint8(read(t_file))) ;
 				end
 				warning('on','MATLAB:imagesci:tiffmexutils:libtiffWarning')
+				
 				% If the image only has 2 channels, create a 3rd 0 channel
 				if size(handles.basePic.data,3) == 2
 					handles.basePic.data(:,:,3) = 0 ;
@@ -1251,7 +1244,7 @@ function imageDirectoryTableSelection_Callback(hObject,eventdata)
 				handles.grayImage = 0 ;
 			end
 			
-			% (Dis/En)abling the channel checkboxes and radiobuttons
+			% (Dis/En)abling the channel checkboxes and radio buttons
 			if handles.grayImage
 				set( handles.displayedChannelsPanel.Children , 'Enable' , 'off' )
 				handles.constants.selectedColors = [true,true,true] ;
