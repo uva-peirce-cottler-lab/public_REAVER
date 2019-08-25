@@ -18,7 +18,7 @@ if true
 	
 	% Setting the default values
 	image_resolution = 0.51777 ;
-	fig_position = [60,50,screenSize(1)/2,screenSize(2)/2] ;
+	fig_position = [screenSize(1)/8,screenSize(2)/4,screenSize(1)/2,screenSize(2)/2] ;
 	ax_position  = [(screenSize(1)/4)-(initialAxSize/2),(screenSize(2)/4)-(initialAxSize/2),initialAxSize,initialAxSize] ;
 % 	default_value_names = {'image_resolution','fig_position','ax_position'} ;
 	default_value_names = {'image_resolution'} ;
@@ -967,6 +967,8 @@ function quantifyAllImage_Callback(hObject,~)
 	results_tbl = table;
 	results_tbl.image_name = processedImageDataFiles ;
 	
+	wtbr = waitbar(0,'Please wait...') ;
+	
 	% Quantify All images from mat file data
 	for n=1:numel(processedImageDataFiles)
 		[metric_st, short_lbl_st] = reaver_quantify_network([imageDirectory '/' ...
@@ -977,11 +979,17 @@ function quantifyAllImage_Callback(hObject,~)
 		for k=1:numel(f)
 			results_tbl.(f{k})(n) = metric_st.(f{k}) ;
 		end
-    
+		
+		waitbar(n/numel(processedImageDataFiles),wtbr,'Quantifying...') ;
 	end
 
 	writetable(results_tbl,[imageDirectory '/image_results.csv'])
 	% 	keyboard
+	
+	waitbar(1,wtbr,'Finished!')
+	pause(0.75)
+	close(wtbr)
+	
 	guidata(hObject,handles)
 end
 
