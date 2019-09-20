@@ -21,7 +21,7 @@ metric_st=struct();
 metric_st.vessel_area_fraction = sum(st.derivedPic.BW_2(:))./prod(st.imageSize);
 
 metric_st.vessel_length_um = nnz(st.derivedPic.wire) * ...
-(ffov_um/st.imageSize(1));
+(fov_um/st.imageSize(1));
 metric_st.vessel_length_density_mmpmm2 = nnz(st.derivedPic.wire) * ...
     (fov_mm/st.imageSize(1))./(fov_mm).^2;
 metric_st.branchpoint_count=size(st.derivedPic.branchpoints,1);

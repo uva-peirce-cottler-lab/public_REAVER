@@ -10,20 +10,24 @@ if true
 		pC = [1 1:col-1];
 		qC = [2:col col];
 	%---- End: Create Vectors Necessary for Proper Neighbor Tallying
-	
+
+    % Add a quick median filter
+%     handles.derivedPic.grey = medfilt2(handles.derivedPic.grey,[5,5]);
+    
 	%---- Start: Determine Greyscale Total Neighbor Values
 		handles.derivedPic.greynbrs = ...
 			handles.derivedPic.grey(:,pC)  + handles.derivedPic.grey(:,qC) + ...
 			handles.derivedPic.grey(pR,:)  + handles.derivedPic.grey(qR,:) + ...
 			handles.derivedPic.grey(pR,pC) + handles.derivedPic.grey(qR,qC) + ...
 			handles.derivedPic.grey(pR,qC) + handles.derivedPic.grey(qR,pC);
-
-		handles.derivedPic.greynbrs = handles.derivedPic.greynbrs / (255*8) ; % Each neighbor is 0-255 so you have to average and normalize
+        
+% 		handles.derivedPic.greynbrs = imfilter(handles.derivedPic.grey, fspecial(3,3),'average');
+        handles.derivedPic.greynbrs = handles.derivedPic.greynbrs / (255*8) ; % Each neighbor is 0-255 so you have to average and normalize
 	%---- End: Determine Greyscale Total Neighbor Values
-
+% keyboard
 	%---- Start: Local Thresholding of Greyscale Neighbors to get First Binary Image
 		handles.derivedPic.mean = 0.4*imfilter( handles.derivedPic.greynbrs , ...
-			fspecial('average', [handles.constants.averagingFilterSize handles.constants.averagingFilterSize]) , 'replicate' ) ;
+			fspecial('average', [handles.constants.averagingFilterSize handles.constants.averagingFilterSize]) , 'symmetric' ) ;
 		
 		handles.derivedPic.BW_1 = ( handles.derivedPic.greynbrs - handles.derivedPic.mean ) > handles.constants.grey2BWthreshold ;
 	%---- End: Local Thresholding of Greyscale Neighbors to get First Binary Image

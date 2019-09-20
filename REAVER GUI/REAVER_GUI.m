@@ -96,7 +96,7 @@ end
 			uitable('Parent',REAVER_Fig...
 				   ,'Tag','imageDirectoryTable'...
 				   ,'RowName',{}...
-				   ,'ColumnName',{'Image';'Existing Data';'Peer Verified'}...
+				   ,'ColumnName',{'Image';'Existing Data';'Verified'}...
 				   ,'ColumnWidth',num2cell(floor([45,45,45]*screenSize(1)/1920)-6)...
 				   ,'ColumnEditable',[false,false,true]...
 				   ,'BackgroundColor',[0.95,0.95,0.95]...
@@ -524,7 +524,7 @@ if true
 		  
 		uimenu('Parent',dataMenu...
 			  ,'Tag','quantifyAllImagesItem'...
-			  ,'Text','&Quantify All Images'...
+			  ,'Text','&Quantify Valid Images'...
 			  ,'MenuSelectedFcn',@quantifyAllImage_Callback...
 			  )
 		 
@@ -550,7 +550,7 @@ if true
 		uimenu('Parent',imageMenu...
 			  ,'Tag','gammaAdjustItem'...
 			  ,'Text','&Gamma Adjust'...
-			  ,'Checked','on'...
+			  ,'Checked','off'...
 			  ,'MenuSelectedFcn',@gammaAdjustItem_Callback...
 			  )
 		  
@@ -730,19 +730,19 @@ function loadDirectory_Callback(hObject,~)
 	directoryContentsData = dir( [selectedDirectory,handles.slash,'*.mat'] ) ;
 	trimmedValidDataFiles = cellfun( @(cll) cll(1:(end-4)) , {directoryContentsData.name}' , 'UniformOutput' , 0 ) ;
 	
-	peerVerified = [ handles.imageDirectory.validFiles , num2cell(false(length(trimmedValidImageFiles),1)) ] ;
+	userVerified = [ handles.imageDirectory.validFiles , num2cell(false(length(trimmedValidImageFiles),1)) ] ;
 	
-	if ismember('Peer Verified Table',trimmedValidDataFiles)
-		loadedData   = load([selectedDirectory,handles.slash,'Peer Verified Table.mat']) ;
-		loadedPeerVerified = loadedData.peerVerified ;
+	if ismember('User Verified Table',trimmedValidDataFiles)
+		loadedData   = load([selectedDirectory,handles.slash,'User Verified Table.mat']) ;
+		loadedUserVerified = loadedData.userVerified ;
 		
-		[Lia,Locb] = ismember( peerVerified(:,1) , loadedPeerVerified(:,1) ) ;
+		[Lia,Locb] = ismember( userVerified(:,1) , loadedUserVerified(:,1) ) ;
 		Locb( Locb==0 ) = [] ;
 		
-		peerVerified(Lia,2) = loadedPeerVerified(Locb,2) ;
+		userVerified(Lia,2) = loadedUserVerified(Locb,2) ;
 		
 	else
-		save([selectedDirectory,handles.slash,'Peer Verified Table.mat'],'peerVerified') ;
+		save([selectedDirectory,handles.slash,'User Verified Table.mat'],'userVerified') ;
 	end
 	
 	if isempty( trimmedValidImageFiles )
@@ -762,7 +762,7 @@ function loadDirectory_Callback(hObject,~)
 	end
 
 	tableData(:,2) = num2cell( ismember( trimmedValidImageFiles , trimmedValidDataFiles ) ) ;
-	tableData(:,3) = peerVerified(:,2) ;
+	tableData(:,3) = userVerified(:,2) ;
 %%%%% End: Get and Process Directory Contents
 
 %%%%% Start: Alter UI Properties
@@ -964,26 +964,53 @@ function quantifyAllImage_Callback(hObject,~)
 		handles.imageDirectoryTable.Data(validFiles,1) , 'UniformOutput' , false ) ;
 	imageDirectory = handles.imageDirectory.directory ;
 
-	results_tbl = table;
-	results_tbl.image_name = processedImageDataFiles ;
 	
 	wtbr = waitbar(0,'Please wait...') ;
-	
-	% Quantify All images from mat file data
-	for n=1:numel(processedImageDataFiles)
-		[metric_st, short_lbl_st] = reaver_quantify_network([imageDirectory '/' ...
-			processedImageDataFiles{n}]) ; %#ok<ASGLU>
     
-		f = fields(metric_st) ;
-		
-		for k=1:numel(f)
-			results_tbl.(f{k})(n) = metric_st.(f{k}) ;
-		end
-		
-		waitbar(n/numel(processedImageDataFiles),wtbr,'Quantifying...') ;
-	end
+	% Load metadata for whether images were peer verified
+    st_dir = load([imageDirectory '/User Verified Table.mat']);
+    user_verified_image_names = st_dir.userVerified(:,1);
+    
+    % For each image from processedImages, find userVerified value from
+    % User Verified Table
+    bv_user_verified=zeros(1,numel(processedImageDataFiles));
+    tmp_index = 1:numel(user_verified_image_names); 
+    for n=1:numel(processedImageDataFiles)
+        match_str = regexprep(processedImageDataFiles{n},'.mat$','.tif');
+        tf = strncmp(match_str,user_verified_image_names,numel( match_str));
+        
+        bv_user_verified(n) = st_dir.userVerified{tmp_index(tf),2};
+    end
+    
+    
+    results_tbl = table;
+	results_tbl.image_name = processedImageDataFiles(logical(bv_user_verified));
+	
+    
+    
+    % Process images
+    for n=1:numel(results_tbl.image_name)
+        % Load analysis data of image
+%         st = load([imageDirectory '/' processedImageDataFiles{n}]);
 
+        % Load matlab file of image and quantify network
+        [metric_st, short_lbl_st] = reaver_quantify_network([imageDirectory '/' ...
+            results_tbl.image_name{n}]) ; %#ok<ASGLU>
+        
+        % Export all quantification fields to table
+        f = fields(metric_st) ;
+        for k=1:numel(f); results_tbl.(f{k})(n) = metric_st.(f{k});  end
+
+        waitbar(n/numel(processedImageDataFiles),wtbr,'Quantifying...') ;
+    end
+
+    % Delete empty rows in result table. 
+    
+    try
 	writetable(results_tbl,[imageDirectory '/image_results.csv'])
+    catch ME
+        errordlg("Output CSV file is open in another program. Please close.");
+    end
 	% 	keyboard
 	
 	waitbar(1,wtbr,'Finished!')
@@ -1162,14 +1189,14 @@ function imageDirectoryTableSelection_Callback(hObject,eventdata)
 
 	Value = eventdata.Indices ; % Retrieve Cell Selection(s)
 	
-	%---- Start: Change Peer Verification if Applicable
+	%---- Start: Change User Verification if Applicable
 		if (size( Value , 1 ) == 1) && ( Value(1,2) == 3 )
 			if hObject.Data{ Value(1) , 2 }
 				hObject.Data{ Value(1) , 3 } = ~hObject.Data{ Value(1) , 3 } ;
 
-				peerVerified = [ handles.imageDirectory.validFiles , hObject.Data(:,3) ] ;
+				userVerified = [ handles.imageDirectory.validFiles , hObject.Data(:,3) ] ;
 
-				save([handles.imageDirectory.directory,handles.slash,'Peer Verified Table.mat'],'peerVerified')
+				save([handles.imageDirectory.directory,handles.slash,'User Verified Table.mat'],'userVerified')
 				
 				fixTableScroll(handles.imageDirectoryTable,Value(1))
 				
@@ -1177,7 +1204,7 @@ function imageDirectoryTableSelection_Callback(hObject,eventdata)
 
 			return
 		end
-	%---- End: Change Peer Verification if Applicable
+	%---- End: Change User Verification if Applicable
 	
 	%---- Start: Trim Cell Selection(s) to First Valid File Cell
 		Value( Value(:,2)~=1 , : ) = [] ;
@@ -1627,18 +1654,18 @@ end
 function imageDirectoryTableEdit_Callback(hObject,eventdata)
 	handles = guidata(hObject) ;
 	
-%%%%% Start: Confirm Peer Verification is Allowed, then Execute Change
+%%%%% Start: Confirm User Verification is Allowed, then Execute Change
 	Value = eventdata.Indices ;
 	if hObject.Data{ Value(1) , 2 }
 		hObject.Data{ Value(1) , 3 } = ~hObject.Data{ Value(1) , 3 } ;
 
-		peerVerified = [ handles.imageDirectory.validFiles , hObject.Data(:,3) ] ;
+		userVerified = [ handles.imageDirectory.validFiles , hObject.Data(:,3) ] ;
 
-		save([handles.imageDirectory.directory,handles.slash,'Peer Verified Table.mat'],'peerVerified')
+		save([handles.imageDirectory.directory,handles.slash,'User Verified Table.mat'],'userVerified')
 	else
 		hObject.Data{ Value(1) , 3 } = eventdata.PreviousData ;
 	end
-%%%%% End: Confirm Peer Verification is Allowed, then Execute Change
+%%%%% End: Confirm User Verification is Allowed, then Execute Change
 
 	fixTableScroll(handles.imageDirectoryTable,Value(1))
 
