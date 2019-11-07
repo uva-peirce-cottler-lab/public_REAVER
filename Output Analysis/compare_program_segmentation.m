@@ -4,9 +4,9 @@ raw_metric_tbl=readtable([getappdata(0,'proj_path') ...
     '/Output Analysis/all_program_results.csv']);
 % raw_metric_tbl.Vessel_Length_Density = raw_metric_tbl.Vessel_Length .* raw_metric_tbl.umppix;
 
-
+[filename,filepath] =  uigetfile('*.xlsx','Select Time Analysis XLSX');
 % Load execution time for each image
-time_tbl=readtable([get_dataset_path() '/17. REAVER Data/Program_Analysis_Times.xlsx']);
+time_tbl=readtable([filepath '/' filename]);
 % For each entry in manual table, add entry for matching image name into
 % raw_metric_table
 
@@ -38,28 +38,28 @@ metrics_cell = {''};
 subaxis(2,2,1,col1_args{:});
 [data_mat, group_ids] = table_2_obsvar_mat(metric_tbl, 'Accuracy','Program');
 boxplot_multcompare(data_mat, group_ids, 'TargetValue',1,'y_axis_text',...
-    'Accuracy','group_labels',prettify_groups(group_ids),'IncludeTopRank',1,...
+    'Accuracy','group_labels',prettify_groups(group_ids),'IncludeTopRank',0,...
     'IncludeTargetWithinRange',0,'StatAnalysis','Mean','RankDirection','descend');
 pbaspect(gca, [x_ax_scale 1 1])
 
 subaxis(2,2,2,col1_args{:});
 [data_mat, group_ids] = table_2_obsvar_mat(metric_tbl, 'Sensitivity','Program');
 boxplot_multcompare(data_mat, group_ids, 'TargetValue',1,'y_axis_text',...
-    'Sensitivity','group_labels',prettify_groups(group_ids),'IncludeTopRank',1,...
+    'Sensitivity','group_labels',prettify_groups(group_ids),'IncludeTopRank',0,...
     'IncludeTargetWithinRange',0,'StatAnalysis','Mean','RankDirection','descend');
 pbaspect(gca, [x_ax_scale 1 1])
 
 subaxis(2,2,3,col1_args{:});
 [data_mat, group_ids] = table_2_obsvar_mat(metric_tbl, 'Specificity','Program');
 boxplot_multcompare(data_mat, group_ids, 'TargetValue',1,'y_axis_text',...
-    'Specificity','group_labels',prettify_groups(group_ids),'IncludeTopRank',1,...
+    'Specificity','group_labels',prettify_groups(group_ids),'IncludeTopRank',0,...
     'IncludeTargetWithinRange',0,'StatAnalysis','Mean','RankDirection','descend');
 pbaspect(gca, [x_ax_scale 1 1])
 
 subaxis(2,2,4,col1_args{:});
 [data_mat, group_ids] = table_2_obsvar_mat(metric_tbl, 'Execution_Time','Program');
 boxplot_multcompare(data_mat, group_ids, 'TargetValue',0,'y_axis_text',...
-    'Ex. Time (sec)','group_labels',prettify_groups(group_ids),'IncludeTopRank',1,...
+    'Ex. Time (sec)','group_labels',prettify_groups(group_ids),'IncludeTopRank',0,...
     'IncludeTargetWithinRange',0,'StatAnalysis','Mean','RankDirection','ascend');
 pbaspect(gca, [x_ax_scale 1 1])
 

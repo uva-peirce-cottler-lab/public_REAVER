@@ -47,6 +47,7 @@ p.addParameter('ForceScientificNotationYAxis',1,@isnumeric);
 p.addParameter('PairwiseSigTable',[],@(x) size(x,2)==3 && isnumeric(x));
 p.addParameter('StatAnalysis','Mean');
 p.addParameter('RankDirection','ascend',@ischar);
+p.addParameter('Tail','both',@(x) ismember(x,{'both', 'left','right'}));
 % group_labels: Version of studyt group names specifically for labeling on 
 % axis (multiline)
 p.addParameter('group_labels',[],@(x) iscell(x));
@@ -94,11 +95,16 @@ set(ax,'Units','pixels');
 % Test for different distributions between groups
 if isempty(PairwiseSigTable)
     
-    [PairwiseSigTable,~] = pwise_1tail_test(data_mat,...
+    if strcmp(Tail,'both')
+        [PairwiseSigTable,~] = pwise_2tail_test(data_mat,...
+        @(x,y) ttest(x,y,'tail','both'));
+    else
+         [PairwiseSigTable,~] = pwise_2tail_test(data_mat,...
         @(x,y) ttest(x,y,'tail','left'));
-    
+    end
 end
 
+leader_labels=[];
 if IncludeTopRank
     % Perform round robin ranking
     ranks = pairwise_toprank(PairwiseSigTable);
@@ -131,18 +137,14 @@ if IncludeTopRank
         100*(udata(srt_ranks(4))-udata(srt_ranks(1)))./udata(srt_ranks(4)),...
         PairwiseSigTable(PairwiseSigTable(:,1)==srt_ranks(1) & ...
         PairwiseSigTable(:,2)==srt_ranks(4),3))
-    % keyboard
+
+    % Determine which study groups are in top performing collection, defined as the group
+    % closest to the target value, and any group that is not from a different 
+    % statistical distribution
+    leader_labels(1:size(data_mat,2)) = {''};
+    leader_labels(ranks==1) = {'\bf\nabla'};
 end
 
-% Determine which study groups are in top performing collection, defined as the group
-% closest to the target value, and any group that is not from a different 
-% statistical distribution
-if IncludeTopRank
-    leader_labels(1:size(data_mat,2)) = {''};
-%     keyboard
-    leader_labels(ranks==1) = {'\bf\nabla'};
-else leader_labels=[];
-end
 
 if numel(IncludeTargetWithinRange)==1 && IncludeTargetWithinRange
     
@@ -163,22 +165,25 @@ if IncludeMultipleComparisons
     sig_sign_cell = cellstr(char(97:numel(group_ids)+97-1)')';
     for n=1:numel(group_ids)
         
-        % Scan for all groups this group is unique to
-        if TargetValue==0;
-            % Less than wins
-            wins_ind = PairwiseSigTable(PairwiseSigTable(:,1)==n  & PairwiseSigTable(:,3)<alpha_lvl,2)';
-        else
-            % Greater than wins
-            wins_ind = PairwiseSigTable(PairwiseSigTable(:,2)==n  & PairwiseSigTable(:,3)<alpha_lvl,1)';
-        end
+        % Less than wins
+        lt_ind = PairwiseSigTable(PairwiseSigTable(:,1)==n  & PairwiseSigTable(:,3)<alpha_lvl,2)';
+        % Greater than wins
+        gt_ind = PairwiseSigTable(PairwiseSigTable(:,2)==n  & PairwiseSigTable(:,3)<alpha_lvl,1)';
         
+        if ~strcmp(Tail,'both')
+        if TargetValue==0; gt_ind = []; else lt_ind = []; end
+        end
+        wins_ind = [lt_ind gt_ind];
+    
         sig_group_id = sort(wins_ind);
         % Compile string of sig values
         mc_labels{n} = strjoin(sig_sign_cell(sig_group_id),'');
     end
+%     keyboard
 else
     mc_labels={};
 end
+% keyboard
 % Set x axis
 xpos = group_spacing_scalar*(1:numel(group_ids));
 axis([xpos(1)-diff(xpos(1:2))/2 xpos(end)+diff(xpos(1:2))/2 ylim]);
