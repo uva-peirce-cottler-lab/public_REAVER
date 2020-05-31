@@ -7,16 +7,21 @@ end
 
 
 
-% Load matlab 
-st=load(mat_path);
-
-fov_um=530.2;
+% Load matlab reaver file
+st = load(mat_path);
+fov_um = st.image_resolution* st.imageSize(1);
 fov_mm = fov_um/1000;
-umppix = fov_um./st.imageSize(1);
+umppix = st.image_resolution;
 
+
+% Initialize output struct
 metric_st=struct();
 
-% keyboard
+% Basic metadata
+metric_st.fov_um = fov_um;
+metric_st.umppix = umppix;
+
+
 % Vessel length and Branchpoint density
 metric_st.vessel_area_fraction = sum(st.derivedPic.BW_2(:))./prod(st.imageSize);
 

@@ -17,7 +17,11 @@ if true
 	load('GUI_Icons.mat','gearIcon') 
 	
 	% Setting the default values
-	image_resolution = 0.51777 ;
+    image_resolution = 1;
+    if ~isempty(dir([getappdata(0,'proj_path') '/temp/default_image_resolution.mat']))
+        st = load([getappdata(0,'proj_path') '/temp/default_image_resolution.mat']);
+        image_resolution = st.image_resolution;
+    end
 	fig_position = [screenSize(1)/8,screenSize(2)/4,screenSize(1)/2,screenSize(2)/2] ;
 	ax_position  = [(screenSize(1)/4)-(initialAxSize/2),(screenSize(2)/4)-(initialAxSize/2),initialAxSize,initialAxSize] ;
 % 	default_value_names = {'image_resolution','fig_position','ax_position'} ;
@@ -882,7 +886,8 @@ function processAllImages_Callback(hObject,~)
 			col = round(col) ;
 		end
 
-		handles.REAVER_MainAx.Position = [(currentFigSize(1)/2)-(col/2),(currentFigSize(2)/2)-(row/2),col,row] ;
+		handles.REAVER_MainAx.Position = [(currentFigSize(1)/2)-(col/2),...
+            (currentFigSize(2)/2)-(row/2),col,row] ;
 
 		handles.image = imagesc( handles.basePic.data , 'HitTest' , 'off' ) ;
 		axis off
@@ -1383,6 +1388,9 @@ function imageDirectoryTableSelection_Callback(hObject,eventdata)
 
 			handles.constants = loadedData.constants ;
 
+            % Set image resolution from loaded file
+               set(handles.imageResolutionValueEdit,'String',...
+                   loadedData.image_resolution);
 			if ~isfield(handles.constants,'vesselThicknessThreshold')
 				handles.constants.vesselThicknessThreshold = 3 ;
 			end
@@ -1997,7 +2005,10 @@ function imageResolutionValueEdit_Callback(hObject,~)
 		
 	% IS a new value
 	else
-		save('temp\default_image_resolution.mat','image_resolution')
+		save([getappdata(0,'proj_path') '/temp/default_image_resolution.mat'],...
+            'image_resolution')
+        % Allow for user to save data with new resolution
+        set(handles.saveDataButton,'enable','on');
 	end
 	
 	hObject.String = num2str( image_resolution ) ;
