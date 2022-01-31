@@ -1,111 +1,101 @@
 function rcind_seg_cell = skel_2_linesegs(sp_wire,rc_bp,rc_ep)
-%UNTITLED3 Summary of this function goes here
-%   Detailed explanation goes here
-INCLUDE_ENDPOINTS=1;
-INCLUDE_EDGEPOINTS=1;
+%{
+Function to extract all segments (longer than 5 px) from a wire frame. for
+each segment coordinates of all points in segment are saved.
 
+Input arguements:
+    sp_wire = vessel wireframe, logical array with dimensions equal to 
+                those of the image.
+    rc_bp = branchpoint coordinates specified as [row,column] couples vector
+    rc_ep = endpoints coordinates specified as [row,column] couples vector
+
+Output arguements:
+    rcind_seg_cell = vertical cell array with every cell containing 
+                    [row, col] coordinates of all points belonging to that
+                    segment
+%}
 % Get wire/skeleton and trace
 bw_init_skel = full(sp_wire);
 bw_skel_index = 1:numel(bw_init_skel);
 
 
-% keyboard
-% Specify if endpoints can define a segment
-if INCLUDE_ENDPOINTS; rc_pts = vertcat(rc_bp,rc_ep); else; rc_pts = rc_bp; end
-if INCLUDE_EDGEPOINTS; 
-    bw_border = false(size(bw_init_skel)); 
-    bw_border(1,:)=1; bw_border(:,1)=1;
-    bw_border(end,:)=1; bw_border(:,end)=1;
+% get coordinates of both endpoints and branchpoints
+rc_pts = vertcat(rc_bp,rc_ep);
+
+bw_border = false(size(bw_init_skel));  % Generate a logical image of borders
+bw_border(1,:)=1; bw_border(:,1)=1;
+bw_border(end,:)=1; bw_border(:,end)=1;
 %     imshow()
-    [re, ce]= ind2sub(size(bw_init_skel), ...
-        bw_skel_index(bwmorph(bw_init_skel,'endpoints') & bw_border));
-    rc_pts = vertcat(rc_pts, [re' ce']);
-end
+[re, ce]= ind2sub(size(bw_init_skel), ...
+    bw_skel_index(bwmorph(bw_init_skel,'endpoints') & bw_border)); % Get coordinates of all borders and end points.
+rc_pts = vertcat(rc_pts, [re' ce']); % rc_pts contains all the ends of segments
+rc_pts = unique(rc_pts,'rows');    % remove doubles
 
 bw_pts = false(size(sp_wire));
-bw_pts(sub2ind(size(sp_wire),rc_pts(:,1),rc_pts(:,2)))=1;
+bw_pts(sub2ind(size(sp_wire),rc_pts(:,1),rc_pts(:,2)))=1;   % bw_pts is a logical array with only the rc_pts as true
 
 
-% Segments are trace pixels in between branchpoints (inclusive of bp)
-rcind_seg_cell_cells = cell(10,1);
-    
-% Initilize skeleton image where parts get iteratively processed
+% Initialize place holders
+rcind_seg_cell = cell(1,1);  
+
+% Initilize skeleton image of the wireframe where parts get iteratively processed
 bw_skel_rem = bw_init_skel;
 
 % Need to loop on skeleton until all of it is traced
-for n=1:size(rc_bp.^2)
-%     imshow(bw_skel_rem); pause();
+n = 1;
+while 1  %
     
     % Find first element of skeleton
-    skel_lind = bw_skel_index(bw_skel_rem);
-    if isempty(skel_lind); break; end
-    [ri, ci] = ind2sub(size(bw_skel_rem),skel_lind(1));
+    skel_lind = bw_skel_index(bw_skel_rem); % Indexes of pixels in the wireframe BW image that are logical 1
     
-    % Take remaining wire, trace
-    trace = bwtraceboundary(bw_skel_rem,[ri ci],'W');
-    trace_index = 1:size(trace,1);
-    
-    % Find branchpoints in skeleton trace list
-    is_bp = false(size(trace,1),1);
-    bp_lind = 1:numel(is_bp);
-    for k=1:size(trace,1)
-        is_bp(k) = ismember(trace(k,:),rc_pts,'rows');
-        
+    [ri, ci] = ind2sub(size(bw_skel_rem),skel_lind(1));     % get the coordinates of the 1st logical 1 pixel in the list
+    seg_trace = bwtraceboundary(bw_skel_rem,[ri ci],'W');   % get a trace of the line containing this point
+     
+    is_bp = false(size(seg_trace,1),1);
+    % Check which points of the trace are end-points or branch-points
+    for k=1:size(seg_trace,1)
+        is_bp(k) = ismember(seg_trace(k,:),rc_pts,'rows');
     end
-    bp_ind = bp_lind(is_bp);
-    
-    % Segments are trace pixels in between branchpoints (inclusive of bp)
-    rcind_seg_cell_cells{n} = cell(numel(bp_ind)-1,1);
-    for k=2:numel(bp_ind)
-        rcind_seg_cell_cells{n}{k-1} = trace(bp_ind(k-1):bp_ind(k),1:2);
+    bp_ind = find(is_bp);
+    shortdist_ind = find(diff(bp_ind)==1);
+    if numel(shortdist_ind) > 0
+        bp_ind(shortdist_ind + 1) = [];
     end
+    rcind_seg_cell{n} = cell(numel(bp_ind)-1,1);
+    % Segments are trace pixels in between a couple of rc_pts
+    if length(bp_ind) >= 2
+        tr = seg_trace(bp_ind(1):bp_ind(2),1:2);  % get all elements in the seg_trace that are between the 2 first rc_pts
+    else
+        tr = seg_trace;     % If for some reason we are left with a segment not containing 2 rc_pts
+    end
+    rcind_seg_cell{n} = sortrows(tr); % Save all wire-frame points between 2 adjacent branchpoints (as segment)
+%     %% Plotting for debugging
+%     figure(1);
+%     imshow(bw_skel_rem);
+%     hold on;
+%     plot(tr(:,2),tr(:,1),'g');
+%     plot(tr(1,2),tr(1,1),'o');
+%     plot(tr(end,2),tr(end,1),'o');
+%     hold off;
+%     pause(0.1);
+%     %%
+    % Remove current segment from remaining trace image
+    bw_skel_rem(sub2ind(size(bw_skel_rem), tr(:,1),tr(:,2)))=0;
+
+    % Add end points back in, then remove lone points (particles smaller than 9 px)
+    bw_skel_rem = bwareaopen(bw_skel_rem |  bw_pts,9);
     
-    % Remove line segments from remaining trace
-    bw_skel_rem(sub2ind(size(bw_skel_rem), trace(:,1),trace(:,2)))=0;
-    
-    % Add skel points back in, remove lone points
-    bw_skel_rem = bwareaopen(bw_skel_rem |  bw_pts,2);
-    
-    
+    % Loop stop condition
+    if sum(bw_skel_rem,'all')==0
+        break 
+    end
+    n = n+1 ;
+
 end   
-    
-rcind_seg_cell = vertcat(rcind_seg_cell_cells{:});
 
-% Cull segments less than 5 pixels in length
+% delete segments less than 5 pixels in length
 rcind_seg_cell(cellfun(@(x) size(x,1) <=5, rcind_seg_cell))=[];
-
-%  keyboard
-%  
-%  
-%     % Get wire/skeleton and trace
-%     bw_skel = full(sp_wire);
-%     % [ri, ci] = ind2sub(size(bw_wire),find(bw_wire,1,'first'));
-%     
-%     
-%     % Visualize all of trace
-%     bw_trace = zeros(size(bw_skel),'uint8');
-%     trace_lind = sub2ind(size(bw_skel), trace(:,1), trace(:,2));
-%     bw_trace(trace_lind) = 25+225*trace_lind./max(trace_lind);
-%     
-%     % Visualize branchpoints
-%     gs_bp = zeros(size(bw_skel),'uint8');
-%     gs_bp(sub2ind(size(bw_skel), rc_bp(:,2),rc_bp(:,1)))=255;
-%     
-%     % VIsualize output
-%     rgb_seg = zeros([size(bw_skel) 3],'uint8');
-%     rgb_seg(:,:,1) = gs_bp;
-%     rgb_seg(:,:,2) = bw_trace;
-%     rgb_seg(:,:,3) = uint8(bw_skel.*255);
-%     
-%     imshow(rgb_seg)
-%     
-%     figure; imshow(bw_skel)
-%     figure; imshow(bw_trace)
-%     
-%     % Concatenate all skel segments
-% rcind_seg_cell_cells=1;
-% 
-%    
+rcind_seg_cell = rcind_seg_cell';
 end
 
 
