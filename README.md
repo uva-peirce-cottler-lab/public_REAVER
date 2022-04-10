@@ -10,7 +10,7 @@ Rapid Editable Analysis of Vessel Elements Routine.
 * Tested on MATLAB 2018b, requires image processing toolbox.
 
 ## Set-up Instructions
-1. Download the latest version of REAVER from https://github.com/uva-peirce-cottler-lab/public_REAVER/releases/tag/v1.0.0.
+1. Download the latest version of REAVER source code from: https://github.com/uva-peirce-cottler-lab/public_REAVER
 2. Click the green button "Clone or Download" on the right side of the web page and then "Download Zip".
 3. Download file and extract the contents.
 
