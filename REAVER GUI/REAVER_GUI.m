@@ -975,14 +975,16 @@ function quantifyAllImage_Callback(hObject,~)
 	% Load metadata for whether images were peer verified
     st_dir = load([imageDirectory '/User Verified Table.mat']);
     user_verified_image_names = st_dir.userVerified(:,1);
+    user_verified_image_basenames = cellfun(@(x) regexprep(x, '\.(\w+)$',''), ...
+        user_verified_image_names, "UniformOutput", false);
     
     % For each image from processedImages, find userVerified value from
     % User Verified Table
     bv_user_verified=zeros(1,numel(processedImageDataFiles));
     tmp_index = 1:numel(user_verified_image_names); 
     for n=1:numel(processedImageDataFiles)
-        match_str = regexprep(processedImageDataFiles{n},'.mat$','.tif');
-        tf = strncmp(match_str,user_verified_image_names,numel( match_str));
+        match_str = regexprep(processedImageDataFiles{n}, '\.(\w+)$','');
+        tf = strncmp(match_str,user_verified_image_basenames,numel( match_str));
         
         bv_user_verified(n) = st_dir.userVerified{tmp_index(tf),2};
     end
