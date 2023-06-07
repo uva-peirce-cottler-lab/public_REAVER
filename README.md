@@ -38,7 +38,7 @@ Rapid Editable Analysis of Vessel Elements Routine.
 
 
 ## Output Metrics
-* These metrics are calculated when images are analyzed and output into a csv file.
+* These metrics are calculated when images are analyzed and output into a csv file (which is produced by clicking "Data >> Quantify All Images").
 1. **vessel_area_fraction**: fraction of pixels in image that belong to a blood vessel (*units*: none, fraction).
 2. **vessel_length_um**:  length of centerline of blood vessels, used as a metric of vessel density, but images have to be acquired with same parameters (not informative across studies with different acquisition parameters) (*units*: micrometers, determine by pixel length and resolution of image).
 3. **vessel_length_density_mmpmm2**: length of centerline (milimeters) of blood vessels normalized by the physical image area (milimeters^2), this metric is used for vessel density and is a little more comparable across studies with different systems and magnifications, although the same image volume must be used (same number and thickness of zsices if analyzed from a flattened zstack). (*units*: mm/mm^2).
