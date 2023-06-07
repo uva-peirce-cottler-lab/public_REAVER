@@ -1,6 +1,8 @@
 # REAVER
 Rapid Editable Analysis of Vessel Elements Routine.
 
+![Screenshot of REAVER program](https://github.com/uva-peirce-cottler-lab/public_REAVER/blob/8b5b2f58d9bc2fc243f7c66999b4323b009c3f71/media/reaver_screenshot.png)
+
 ## External Links
 1. Preprint of manuscript: .
 2. Download vessel network benchmark image dataset used in manuscript: https://doi.org/10.5281/zenodo.3340165.
