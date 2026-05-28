@@ -589,11 +589,11 @@ if true
 		
 		softwareVersion = ['R' version('-release')] ;
 		
-		if str2double(softwareVersion(5)) > 7
+		if str2double(softwareVersion(4:5)) > 17
 			handles.versionNew = 1 ;
-		elseif isequal(softwareVersion(6),'b') && isequal(softwareVersion(5),'7')
+		elseif isequal(softwareVersion(6),'b') && isequal(softwareVersion(4:5),'17')
 			handles.versionNew = 1 ;
-		elseif str2double(softwareVersion(5)) < 5
+		elseif str2double(softwareVersion(4:5)) < 15
 			handles.imageResolutionUnitText.String = 'um / pixel' ;
 			handles.versionNew = 0 ;
 		else
